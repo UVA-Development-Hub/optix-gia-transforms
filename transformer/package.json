@@ -1,0 +1,23 @@
+{
+  "name": "optix-gia-transforms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UVA-Development-Hub/optix-gia-transforms.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UVA-Development-Hub/optix-gia-transforms/issues"
+  },
+  "homepage": "https://github.com/UVA-Development-Hub/optix-gia-transforms#readme",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "mqtt": "^4.2.8"
+  }
+}
