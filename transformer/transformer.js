@@ -10,14 +10,19 @@
 //     app_id: 'test_device_1',
 //     time: luxon.utc().toISO(),
 //     metadata: {
-//         all: 'metadata',
-//         fields: '(i.e. location, etc) ...'
+//         example: 'value',
+//         location: 'Rice_130'
 //     },
 //     payload_fields: {
 //         power: {
 //             displayName: 'power',
 //             unit: 'kW',
 //             value: 4.17
+//         },
+//         voltage: {
+//             displayName: 'voltage',
+//             unit: 'V',
+//             value: 9.01
 //         }
 //     }
 // }
@@ -55,6 +60,7 @@
 
 (require("dotenv")).config();
 const config = process.env;
+const nifiWriteTopic = config.NIFI_WRITE_TOPIC;
 const mqtt = require("mqtt");
 
 const ingestBroker = mqtt.connect(config.INGEST_BROKER, {
@@ -71,7 +77,8 @@ const nifiBroker = mqtt.connect(config.NIFI_BROKER, {
 function onConnectIngest(response) {
     console.info("Connected to ingest broker");
     console.debug(response);
-    ingestBroker.subscribe("data/ingest", () => console.info("Subscribed to ingest broker topic: data/ingest"));
+    ingestBroker.subscribe(ingestBrokerTopic, () => console.info("Subscribed to ingest broker topic: ", ingestBrokerTopic));
+    ingestBroker.subscribe("data/ingest", () => console.info("Subscribed to ingest broker topic: ", "data/ingest"));
     ingestBroker.on("message", onMessageIngest);
 }
 
@@ -84,6 +91,9 @@ function onErrorIngest(err) {
 // Runs when the ingest broker receives a message
 // on the data ingestion topic: data/ingest
 function onMessageIngest(topic, message) {
+    console.info("Received message");
+    message = message.toString();
+    console.debug(message);
     try {
         const jsonIn = JSON.parse(message);
 
@@ -114,10 +124,10 @@ function onMessageIngest(topic, message) {
             .map(metric => {
                 const payloadField = jsonIn.payload_fields[metric];
                 return {
-                    metrics: [
+                    metrics: [{
                         name: `${jsonIn.app_id}.${metric}`,
                         value: payloadField.value
-                    ],
+                    }],
                     static: static.concat([
                         {
                             name: "displayName",
@@ -133,6 +143,7 @@ function onMessageIngest(topic, message) {
             });
 
         // Write the finished data transformation to the nifi broker
+        console.info("Writing to nifi output stream");
         nifiBroker.publish(nifiWriteTopic, JSON.stringify(blobs));
     } catch(err) {
         console.error("ERROR IN INGEST TRANSFORMATION");
