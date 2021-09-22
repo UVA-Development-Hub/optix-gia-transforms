@@ -33,6 +33,8 @@ const openTSDBAgent = axios.create({
     timeout: 0,
 });
 
+const db = require("./db");
+
 //   Checks to see the provided Cognito token is valid
 // for the SIF user pool. If it is indeed valid, the
 // function returns who the authenticated user is.
@@ -134,7 +136,7 @@ async function authenticateBlobs(topic, message) {
         const { success, username, groups, error } = await validateAuthToken(jsonIn.token);
         if(!success) throw("Failed to validate token: " + error);
 
-        const app_id = await createOrReturnApp(app_name, username);
+        const app_id = await createOrReturnApp(jsonIn.app_name, username);
         const payload = {
             app_id: app_id,
             data: IR_Converter(topic, jsonIn.data)
