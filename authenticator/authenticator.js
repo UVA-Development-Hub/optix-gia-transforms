@@ -81,8 +81,8 @@ async function createOrReturnApp(app_name, username) {
         );
         if(searchResult.rows.length) {
             // if yes, store the id
-            cachedId = searchResult.rows[0];
-            console.log("Caching existing app with id ", cachedId);
+            cachedId = searchResult.rows[0].id;
+            console.log("Caching existing app with id", cachedId);
         } else {
             // if no, create it and store the id
             const insertion = await db.query(
@@ -93,7 +93,7 @@ async function createOrReturnApp(app_name, username) {
                 ]
             );
             console.log("Inserting new app row into the database");
-            console.log(insertion);
+            cachedId = insertion.rows[0].id;
         }
         // cache the id
         AppCache.put(appKey, cachedId, 24*3600*1000); // cache the app id for a day
@@ -107,7 +107,8 @@ async function createOrReturnApp(app_name, username) {
 // see which ones, if any, do not yet exist. If new metrics
 // are found, they are added to the datbase and to OpenTSDB.
 async function createMetrics(app_id, metrics) {
-    for(metric in metrics) {
+    for(let i = 0; i < metrics.length; i++) {
+        const metric = metrics[i];
         const metricKey = `${app_id}.${metric}`;
         if(MetricsCache.get(metricKey) === null) {
             const searchResult = await db.query(
