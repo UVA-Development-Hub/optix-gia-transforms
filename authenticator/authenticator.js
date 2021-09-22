@@ -112,7 +112,7 @@ async function createMetrics(app_id, metrics) {
         const metricKey = `${app_id}.${metric}`;
         if(MetricsCache.get(metricKey) === null) {
             const searchResult = await db.query(
-                "SELECT id FROM metrics WHERE metric=$1 AND app_id=$2"
+                "SELECT id FROM metrics WHERE metric=$1 AND app_id=$2",
                 [
                     metric,
                     app_id
@@ -126,7 +126,7 @@ async function createMetrics(app_id, metrics) {
                 await Promise.all([
                 // add metric to the database
                     db.query(
-                        "INSERT INTO metrics(metric, app_id) VALUES($1, $2",
+                        "INSERT INTO metrics(metric, app_id) VALUES($1, $2)",
                         [
                             metric,
                             app_id
