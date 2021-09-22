@@ -23,4 +23,5 @@
 hs_err_pid*
 
 transformer/node_modules/
+authenticator/node_modules/
 **/.env
