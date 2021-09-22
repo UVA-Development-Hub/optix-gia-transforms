@@ -72,14 +72,26 @@ async function createOrReturnApp(app_name, username) {
     var cachedId = AppCache.get(appKey);
     if(cachedId === null) {
         // does the app exist?
-        const searchResult = await db.query(`SELECT id FROM apps WHERE username='${username}' AND app_name='${app_name}'`);
+        const searchResult = await db.query(
+            "SELECT id FROM apps WHERE username=$1 AND app_name=$2",
+            [
+                username,
+                app_name
+            ]
+        );
         if(searchResult.rows.length) {
             // if yes, store the id
             cachedId = searchResult.rows[0];
             console.log("Caching existing app with id ", cachedId);
         } else {
             // if no, create it and store the id
-            const insertion = await db.query(`INSERT INTO apps(username, app_name) VALUES('${username}', '${app_name}')`);
+            const insertion = await db.query(
+                "INSERT INTO apps(username, app_name) VALUES($1, $2) RETURNING id",
+                [
+                    username,
+                    app_name
+                ]
+            );
             console.log("Inserting new app row into the database");
             console.log(insertion);
         }
@@ -98,7 +110,13 @@ async function createMetrics(app_id, metrics) {
     for(metric in metrics) {
         const metricKey = `${app_id}.${metric}`;
         if(MetricsCache.get(metricKey) === null) {
-            const searchResult = await db.query(`SELECT id FROM metrics WHERE metric='${metric}' AND app_id=${app_id}`);
+            const searchResult = await db.query(
+                "SELECT id FROM metrics WHERE metric=$1 AND app_id=$2"
+                [
+                    metric,
+                    app_id
+                ]
+            );
             if(searchResult.rows.length) {
                 console.log("Caching existing metric");
             } else {
@@ -106,7 +124,13 @@ async function createMetrics(app_id, metrics) {
                 console.log("Creating new metric and adding it to the cache");
                 await Promise.all([
                 // add metric to the database
-                    db.query(`INSERT INTO metrics(metric, app_id) VALUES('${metric}', ${app_id})`),
+                    db.query(
+                        "INSERT INTO metrics(metric, app_id) VALUES($1, $2",
+                        [
+                            metric,
+                            app_id
+                        ]
+                    ),
                     // create metric in optix.time
                     openTSDBAgent.get("assign", {
                         params: {
@@ -146,7 +170,7 @@ async function authenticateBlobs(topic, message) {
             config.AUTH_BROKER_TOPIC,
             JSON.stringify(payload)
         );
-        await createMetrics(app_id);
+        await createMetrics(app_id, Object.keys(payload.data.payload_fields));
 
     } catch(err) {
         console.error("ERROR IN AUTHENICATION BROKER: \n" + err.toString());
