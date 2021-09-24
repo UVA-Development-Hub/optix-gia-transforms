@@ -109,7 +109,7 @@ async function createOrReturnApp(app_name, username) {
 async function createMetrics(app_id, metrics) {
     for(let i = 0; i < metrics.length; i++) {
         const metric = metrics[i];
-        const metricKey = `${app_id}.${metric}`;
+        const metricKey = `m.${app_id}.${metric}`;
         if(MetricsCache.get(metricKey) === null) {
             const searchResult = await db.query(
                 "SELECT id FROM metrics WHERE metric=$1 AND app_id=$2",

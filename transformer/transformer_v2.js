@@ -5,6 +5,7 @@
 // NIFI_BROKER_TOPIC: the topic that nifi is reading from
 (require("dotenv")).config();
 const config = process.env;
+const mqtt = require("mqtt");
 
 const authenticatedBroker = mqtt.connect(config.AUTH_BROKER, {
     host: config.AUTH_BROKER,
@@ -19,8 +20,8 @@ const nifiBroker = mqtt.connect(config.NIFI_BROKER, {
 function onConnectAuthBroker(response) {
     console.info("Connected to the auth broker");
     console.debug(response);
-    ingestBroker.subscribe(config.AUTH_BROKER_TOPIC, () => console.info("Subscribed to auth broker topic: ", config.AUTH_BROKER_TOPIC));
-    ingestBroker.on("message", onMessageAuthBroker);
+    authenticatedBroker.subscribe(config.AUTH_BROKER_TOPIC, () => console.info("Subscribed to auth broker topic: ", config.AUTH_BROKER_TOPIC));
+    authenticatedBroker.on("message", onMessageAuthBroker);
 }
 
 // Runs when the ingest broker encounters an error
@@ -58,7 +59,7 @@ function IR_Convert(app_id, ir_message) {
             const payloadField = ir_message.payload_fields[metric];
             return {
                 metrics: [{
-                    name: `${app_id}.${metric}`,
+                    name: `m.${app_id}.${metric}`,
                     value: payloadField.value
                 }],
                 static: static.concat([
