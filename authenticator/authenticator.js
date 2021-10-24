@@ -35,6 +35,17 @@ const openTSDBAgent = axios.create({
 
 const db = require("./db");
 
+// Only 1 handler should access the db at a time
+const { Semaphore } = require("async-mutex");
+const dbSemaphore = new Semaphore(1);
+var sValue, sRelease;
+async function acquireSemaphore() {
+    [sValue, sRelease] = await dbSemaphore.acquire();
+}
+async function releaseSemaphore() {
+    await sRelease();
+}
+
 //   Checks to see the provided Cognito token is valid
 // for the SIF user pool. If it is indeed valid, the
 // function returns who the authenticated user is.
@@ -69,6 +80,7 @@ async function validateAuthToken(token) {
 // database. Returns the found/added app information.
 async function createOrReturnApp(app_name, username) {
     const appKey = `${username}.${app_name}`;
+    await acquireSemaphore();
     var cachedId = AppCache.get(appKey);
     if(cachedId === null) {
         // does the app exist?
@@ -100,6 +112,7 @@ async function createOrReturnApp(app_name, username) {
     } else {
         console.log("App key exists and is cached");
     }
+    await releaseSemaphore();
     return cachedId;
 }
 
@@ -110,6 +123,7 @@ async function createMetrics(app_id, metrics) {
     for(let i = 0; i < metrics.length; i++) {
         const metric = metrics[i];
         const metricKey = `m.${app_id}.${metric}`;
+        await acquireSemaphore();
         if(MetricsCache.get(metricKey) === null) {
             const searchResult = await db.query(
                 "SELECT id FROM metrics WHERE metric=$1 AND app_id=$2",
@@ -144,6 +158,7 @@ async function createMetrics(app_id, metrics) {
         } else {
             console.log("Metric " + metricKey + " exists and is already cached");
         }
+        await releaseSemaphore();
     }
 }
 
