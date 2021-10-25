@@ -13,9 +13,12 @@ function passthroughWithSafety(data) {
     };
 
     Object.keys(data.payload_fields).forEach(field => {
-        const safeField = field.replace(/\s+/g, "_");
+        const safeField = field.replace(/[\s\(\)\?\=\*\&\^\%\$\#\@\!\<\>\/\,\.\;\'\"\{\}\[\]]+/g, "_");
         output.payload_fields[safeField] = data.payload_fields[field];
     });
+
+    console.log(data);
+    console.log(output);
 
     return output;
 }
