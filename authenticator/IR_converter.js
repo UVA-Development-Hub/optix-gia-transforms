@@ -4,6 +4,22 @@ function passthrough(data) {
     return data;
 }
 
+function passthroughWithSafety(data) {
+    var output = {
+        app_name: data.app_name,
+        time: data.time,
+        metadata: data.metadata,
+        payload_fields: {}
+    };
+
+    Object.keys(data.payload_fields).forEach(field => {
+        const safeField = field.replace(/\s+/g, "_");
+        output.payload_fields[safeField] = data.payload_fields[field];
+    });
+
+    return output;
+}
+
 //
 //
 //
@@ -11,7 +27,8 @@ function passthrough(data) {
 //
 
 const conversionMap = {
-    "data/ingest": passthrough
+    "data/ingest/passthrough": passthrough,
+    "data/ingest": passthroughWithSafety
 }
 
 function Convert(topic, data) {
