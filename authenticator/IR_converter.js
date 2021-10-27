@@ -8,12 +8,17 @@ function passthroughWithSafety(data) {
     var output = {
         app_name: data.app_name,
         time: data.time,
-        metadata: data.metadata,
+        metadata: {},
         payload_fields: {}
     };
 
+    Object.keys(data.metadata).forEach(field => {
+        const safeValue = data.metadata[field].replace(/\-+/g, "_");
+        output.metadata[field] = safeValue;
+    });
+
     Object.keys(data.payload_fields).forEach(field => {
-        const safeField = field.replace(/[\s\(\)\?\=\*\&\^\%\$\#\@\!\<\>\/\,\.\;\'\"\{\}\[\]]+/g, "_");
+        const safeField = field.replace(/[\s\-\(\)\?\=\*\&\^\%\$\#\@\!\<\>\/\,\.\;\'\"\{\}\[\]°]+/g, "_");
         output.payload_fields[safeField] = data.payload_fields[field];
     });
 
