@@ -13,7 +13,7 @@ function passthroughWithSafety(data) {
     };
 
     Object.keys(data.metadata).forEach(field => {
-        const safeValue = data.metadata[field].replace(/\s\-+/g, "_");
+        const safeValue = data.metadata[field].replace(/[\s\-]+/g, "_");
         output.metadata[field] = safeValue;
     });
 
