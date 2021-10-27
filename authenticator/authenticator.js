@@ -12,7 +12,7 @@ const CognitoExpress = new (require("cognito-express"))({
     tokenExpiration: 3600000
 });
 const mqtt = require("mqtt");
-const IR_Converter = require("./IR_Converter");
+const IR_Converter = require("./IR_converter");
 
 const MemoryCache = require("memory-cache").Cache;
 const AppCache = new MemoryCache();
@@ -134,27 +134,35 @@ async function createMetrics(app_id, metrics) {
             );
             if(searchResult.rows.length) {
                 console.log("Caching existing metric");
+                MetricsCache.put(metricKey, true, 24*3600*1000);
             } else {
                 // metric is not in the database!
                 console.log("Creating new metric and adding it to the cache");
-                await Promise.all([
-                // add metric to the database
-                    db.query(
-                        "INSERT INTO metrics(metric, app_id) VALUES($1, $2)",
-                        [
-                            metric,
-                            app_id
-                        ]
-                    ),
-                    // create metric in optix.time
-                    openTSDBAgent.get("assign", {
-                        params: {
-                            metric: metricKey
-                        }
-                    })
-                ]);
+                try {
+                    await Promise.all([
+                    // add metric to the database
+                        db.query(
+                            "INSERT INTO metrics(metric, app_id) VALUES($1, $2)",
+                            [
+                                metric,
+                                app_id
+                            ]
+                        ),
+                        // create metric in optix.time
+                        openTSDBAgent.get("assign", {
+                            params: {
+                                metric: metricKey
+                            }
+                        })
+                    ]);
+                    MetricsCache.put(metricKey, true, 24*3600*1000);
+                } catch (err) {
+                    console.error("Failed to create opentsdb metric or insert metric into db")
+                    // does not use "await" because we don't need the
+                    // semaphore to be held throughout the query.
+                    db.query("INSERT INTO statusEvents");
+                }
             }
-            MetricsCache.put(metricKey, true, 24*3600*1000);
         } else {
             console.log("Metric " + metricKey + " exists and is already cached");
         }
@@ -166,15 +174,22 @@ async function createMetrics(app_id, metrics) {
 // is is passed through this function.
 async function authenticateBlobs(topic, message) {
     try {
+        // blobsReceived++;
         const jsonIn = JSON.parse(message);
         if(
             !jsonIn.app_name ||
             !jsonIn.token ||
             !jsonIn.data
-        ) throw("Missing required property in incoming message");
+        ) {
+            // badInputBlob++;
+            throw("Missing required property in incoming message");
+        }
 
         const { success, username, groups, error } = await validateAuthToken(jsonIn.token);
-        if(!success) throw("Failed to validate token: " + error);
+        if(!success) {
+            // badAuthToken++;
+            throw("Failed to validate token: " + error);
+        }
 
         const app_id = await createOrReturnApp(jsonIn.app_name, username);
         const payload = {
@@ -182,6 +197,7 @@ async function authenticateBlobs(topic, message) {
             data: IR_Converter(topic, jsonIn.data)
         }
 
+        // forwardedData++;
         authenticatedBroker.publish(
             config.AUTH_BROKER_TOPIC,
             JSON.stringify(payload)
